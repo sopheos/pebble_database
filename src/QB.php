@@ -34,7 +34,6 @@ class QB
 
     public function __construct(string $table)
     {
-        $this->data_save = [];
         $this->from_stmt = $table;
     }
 
@@ -376,6 +375,30 @@ class QB
     }
 
     /**
+     * Where in multiple
+     *
+     * @param array $fields
+     * @param array $rows
+     * @return static
+     */
+    public function whereInMultiple(array $fields, array $rows): static
+    {
+        return $this->_multiple('AND', $fields, $rows);
+    }
+
+    /**
+     * Or where in multiple
+     *
+     * @param array $fields
+     * @param array $rows
+     * @return static
+     */
+    public function orWhereInMultiple(array $fields, array $rows): static
+    {
+        return $this->_multiple('AND', $fields, $rows);
+    }
+
+    /**
      * Like
      *
      * @param string $col
@@ -541,6 +564,24 @@ class QB
         }
 
         return $this->_where($prefix, "{$col} {$operator} ({$stmt})", $data);
+    }
+
+    private function _multiple(string $prefix, array $fields, array $rows): static
+    {
+        $nbFields = count($fields);
+        $nbRows = count($rows);
+
+        $repeat = '('  . rtrim(str_repeat('?,', $nbFields), ',') . '),';
+        $statement = '(' . join(',', $fields) . ') IN (' . rtrim(str_repeat($repeat, $nbRows), ',') . ')';
+
+        $values = [];
+        foreach ($rows as $row) {
+            foreach ($row as $value) {
+                $values[] = $value;
+            }
+        }
+
+        return $this->_where($prefix, $statement, $values);
     }
 
     /**

@@ -950,9 +950,9 @@ class QB
      * @param array $data
      * @return Query
      */
-    public function insertAll(array $data): Query
+    public function insertAll(array $data, bool $ignore = false): Query
     {
-        return $this->_batch($data, false);
+        return $this->_batch($data, $ignore ? 'INSERT IGNORE' : 'INSERT');
     }
 
     /**
@@ -963,10 +963,10 @@ class QB
      */
     public function replaceAll(array $data): Query
     {
-        return $this->_batch($data, true);
+        return $this->_batch($data, 'REPLACE');
     }
 
-    private function _batch(array $data, bool $replace = false): Query
+    private function _batch(array $data, string $mode): Query
     {
         if (!$data) {
             return new Query();
@@ -975,7 +975,7 @@ class QB
         $keys = array_keys($data[0]);
         $frag = "(" . join(",", array_fill(0, count($keys), "?")) . ")";
 
-        $query_str = $replace ? "REPLACE INTO " : "INSERT INTO ";
+        $query_str = $mode . " INTO ";
         $query_str .= $this->from_stmt . " (" . join(",", $keys) . ") VALUES \n";
 
         $query_data = [];
@@ -1099,7 +1099,7 @@ class QB
             $values .= join($sep, $this->data_raw_values);
         }
 
-        $ignore = $ignore ? " IGNORE" : "";
+        $ignore = $ignore && !$replace ? " IGNORE" : "";
 
         return ($replace ? "REPLACE" : "INSERT" . $ignore)
             . " INTO\n\t" . $this->from_stmt
@@ -1144,5 +1144,3 @@ class QB
         return "DELETE " . $select . " FROM\n\t" . $this->from_stmt;
     }
 }
-
-/* End of file */

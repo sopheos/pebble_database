@@ -51,7 +51,7 @@ class Driver implements DriverInterface
         try {
             $this->pdo->exec("USE {$database}");
         } catch (PDOException $ex) {
-            throw Exception::connect(__METHOD__, $ex);
+            throw Exception::connect($ex);
         }
 
         return $this;
@@ -91,7 +91,7 @@ class Driver implements DriverInterface
         try {
             $this->pdo->beginTransaction();
         } catch (PDOException $ex) {
-            throw Exception::transaction(__METHOD__, $ex);
+            throw Exception::transaction($ex);
         }
 
         return $this;
@@ -108,7 +108,7 @@ class Driver implements DriverInterface
         try {
             $this->pdo->commit();
         } catch (PDOException $ex) {
-            throw Exception::transaction(__METHOD__, $ex);
+            throw Exception::transaction($ex);
         }
 
         return $this;
@@ -125,7 +125,7 @@ class Driver implements DriverInterface
         try {
             $this->pdo->rollBack();
         } catch (PDOException $ex) {
-            throw Exception::transaction(__METHOD__, $ex);
+            throw Exception::transaction($ex);
         }
 
         return $this;
@@ -168,7 +168,7 @@ class Driver implements DriverInterface
             $stmt = $this->pdo->query($sql);
             return new Statement($stmt);
         } catch (PDOException $ex) {
-            throw Exception::execute(__METHOD__, $ex);
+            throw Exception::execute($ex);
         }
     }
 
@@ -185,7 +185,7 @@ class Driver implements DriverInterface
             $stmt = $this->pdo->prepare($statement);
             return new Statement($stmt);
         } catch (PDOException $ex) {
-            throw Exception::prepare(__METHOD__, $ex);
+            throw Exception::prepare($ex);
         }
     }
 

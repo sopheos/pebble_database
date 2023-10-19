@@ -66,7 +66,7 @@ class Query implements QueryInterface
             $replace = is_string($v) ? "'" . self::mysql_escape_mimic($v) . "'" : $v;
             $pos = strpos($query, '?');
             if ($pos !== false) {
-                $query = substr_replace($query, $replace, $pos, 1);
+                $query = substr_replace($query, $replace ?? '', $pos, 1);
             }
         }
 

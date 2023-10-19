@@ -2,6 +2,8 @@
 
 namespace Pebble\Database;
 
+use PDOException;
+
 /**
  * QBException
  *
@@ -18,53 +20,73 @@ class Exception extends \Exception
     const TRANSACTION = 5;
 
     /**
-     * @param string $msg
+     * @param PDOException|string $msg
      * @param \Throwable $prev
      * @return \static
      */
-    public static function connect(string $msg, \Throwable $prev = null)
+    public static function connect(PDOException|string $msg, \Throwable $prev = null)
     {
+        if ($msg instanceof PDOException) {
+            $msg = self::pdoMessage($msg);
+        }
         return new static($msg, self::CONNECT, $prev);
     }
 
     /**
-     * @param string $msg
+     * @param PDOException|string $msg
      * @param \Throwable $prev
      * @return \static
      */
-    public static function prepare(string $msg, \Throwable $prev = null)
+    public static function prepare(PDOException|string $msg, \Throwable $prev = null)
     {
+        if ($msg instanceof PDOException) {
+            $msg = self::pdoMessage($msg);
+        }
         return new static($msg, self::PREPARE, $prev);
     }
 
     /**
-     * @param string $msg
+     * @param PDOException|string $msg
      * @param \Throwable $prev
      * @return \static
      */
-    public static function bind(string $msg, \Throwable $prev = null)
+    public static function bind(PDOException|string $msg, \Throwable $prev = null)
     {
+        if ($msg instanceof PDOException) {
+            $msg = self::pdoMessage($msg);
+        }
         return new static($msg, self::BIND, $prev);
     }
 
     /**
-     * @param string $msg
+     * @param PDOException|string $msg
      * @param \Throwable $prev
      * @return \static
      */
-    public static function execute(string $msg, \Throwable $prev = null)
+    public static function execute(PDOException|string $msg, \Throwable $prev = null)
     {
+        if ($msg instanceof PDOException) {
+            $msg = self::pdoMessage($msg);
+        }
         return new static($msg, self::EXECUTE, $prev);
     }
 
     /**
-     * @param string $msg
+     * @param PDOException|string $msg
      * @param \Throwable $prev
      * @return \static
      */
-    public static function transaction(string $msg, \Throwable $prev = null)
+    public static function transaction(PDOException|string $msg, \Throwable $prev = null)
     {
+        if ($msg instanceof PDOException) {
+            $msg = self::pdoMessage($msg);
+        }
         return new static($msg, self::TRANSACTION, $prev);
+    }
+
+    private static function pdoMessage(PDOException $ex): string
+    {
+        return $ex->getCode() . ': ' .  $ex->getMessage();
     }
 }
 

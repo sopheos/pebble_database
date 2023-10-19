@@ -29,7 +29,6 @@ class DBForge
 
     public function reset()
     {
-        $this->current_col = null;
         $this->cols = ['add' => [], 'drop' => [], 'change' => []];
         $this->primary = ['add' => [], 'drop' => false];
         $this->keys = ['add' => [], 'drop' => []];

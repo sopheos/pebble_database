@@ -60,7 +60,7 @@ class Statement implements StatementInterface
         try {
             $this->stmt->execute($data ?: null);
         } catch (PDOException $ex) {
-            throw Exception::execute(__METHOD__, $ex);
+            throw Exception::execute($ex);
         }
 
         return $this;

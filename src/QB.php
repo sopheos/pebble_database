@@ -472,6 +472,10 @@ class QB
 
 
         if (is_array($value)) {
+            if (!$value) {
+                return $this;
+            }
+
             $operator = match ($operator) {
                 '=' => "IN",
                 '<>' => "NOT IN",

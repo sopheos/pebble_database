@@ -2,6 +2,8 @@
 
 namespace Pebble\Database;
 
+use InvalidArgumentException;
+
 /**
  * Query builder
  *
@@ -444,6 +446,67 @@ class QB
     public function orNotLike(string $col, string $value): static
     {
         return $this->where($col . " NOT LIKE ?", $value);
+    }
+
+    /**
+     * Auto where
+     *
+     * @param string $colStr
+     * @param mixed $value
+     * @return static
+     */
+    public function whereAuto(string $colStr, $value): static
+    {
+        $pattern = "/(and|or)?\s*([a-z0-9_]+)\s*(.*)/i";
+        $matches = [];
+
+        if (preg_match($pattern, $colStr, $matches) !== 1) {
+            throw new InvalidArgumentException("$colStr format");
+        }
+
+        $prefix = mb_strtoupper($matches[1] ?: 'and');
+        $prefix = mb_strtoupper($matches[1] ?: 'and');
+        $col = $matches[2];
+        $operator = mb_strtoupper(($matches[3] ?? null) ?: '=');
+        $operator = $operator === '!=' ? '<>' : $operator;
+
+
+        if (is_array($value)) {
+            $operator = match ($operator) {
+                '=' => "IN",
+                '<>' => "NOT IN",
+                default => $operator,
+            };
+            return $this->_in($prefix, $operator, $col, $value);
+        }
+
+        if ($value === null) {
+            $operator = match ($operator) {
+                '=' => "IS",
+                '<>' => "IS NOT",
+                default => $operator,
+            };
+
+            return $this->_where($prefix, "{$col} {$operator} NULL", []);
+        }
+
+        return $this->_where($prefix, "{$col} {$operator} ?", [$value]);
+    }
+
+    /**
+     * Auto where list
+     *
+     * @param string $colStr
+     * @param mixed $value
+     * @return static
+     */
+    public function whereAutoList(array $where = []): static
+    {
+        foreach ($where as $col => $value) {
+            $this->whereAuto($col, $value);
+        }
+
+        return $this;
     }
 
     /**

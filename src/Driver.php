@@ -203,7 +203,11 @@ class Driver implements DriverInterface
                 ->prepare($query->getStatement())
                 ->execute($query->getData());
         } catch (Exception $ex) {
-            throw Exception::execute($ex->getMessage() . "\n" . $query->__toString(), $ex);
+            throw new Exception(
+                $ex->getMessage() . "\n" . $query->__toString(),
+                $ex->getCode(),
+                $ex->getPrevious()
+            );
         }
     }
 

@@ -386,8 +386,7 @@ class DBForge
         $target_array = explode('.', $target);
 
         if (count($target_array) !== 2) {
-            $message = $target . " is not a valid target";
-            Exception::prepare($message);
+            throw new Exception("{$target} is not a valid target", Exception::PREPARE);
         }
 
         $statement = "CONSTRAINT `%s_{$field}_fk`";
@@ -447,8 +446,7 @@ class DBForge
     public static function checkIdentifier(string $value): string
     {
         if ($value && !preg_match("^[a-zA-Z0-9]+$", $value)) {
-            $message = "{$value} is not a valid identifier";
-            throw Exception::prepare($message);
+            throw new Exception("{$value} is not a valid identifier", Exception::PREPARE);
         }
 
         return $value;

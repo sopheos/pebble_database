@@ -335,7 +335,7 @@ class QB
      * @param array|Query $values
      * @return static
      */
-    public function whereIn($col, $values): static
+    public function whereIn(string|array $col, array|Query $values): static
     {
         return $this->_in("AND", "IN", $col, $values);
     }
@@ -347,7 +347,7 @@ class QB
      * @param array|Query $values
      * @return static
      */
-    public function orWhereIn($col, $values): static
+    public function orWhereIn(string|array $col, array|Query $values): static
     {
         return $this->_in("OR", "IN", $col, $values);
     }
@@ -359,7 +359,7 @@ class QB
      * @param array|Query $values
      * @return static
      */
-    public function whereNotIn($col, $values): static
+    public function whereNotIn(string|array $col, array|Query $values): static
     {
         return $this->_in("AND", "NOT IN", $col, $values);
     }
@@ -371,7 +371,7 @@ class QB
      * @param array|Query $values
      * @return static
      */
-    public function orWhereNotIn($col, $values): static
+    public function orWhereNotIn(string|array $col, array|Query $values): static
     {
         return $this->_in("OR", "NOT IN", $col, $values);
     }
@@ -585,7 +585,7 @@ class QB
      * @param array|Query $values
      * @return static
      */
-    private function _in(string $prefix, string $operator, $col, $values): static
+    private function _in(string $prefix, string $operator, string|array $col, array|Query $values): static
     {
         if (!$values) {
             return $this;

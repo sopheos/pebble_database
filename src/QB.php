@@ -508,9 +508,13 @@ class QB
      */
     public function whereAutoList(array $where = []): static
     {
-        foreach ($where as $value) {
-            $expr = $value[0] ?? null;
-            $value = $value[1] ?? null;
+        foreach ($where as $row) {
+            if (! is_array($row)) {
+                throw new InvalidArgumentException("Query expression not found");
+            }
+
+            $expr = $row[0] ?? null;
+            $value = $row[1] ?? null;
             if ($expr === null) {
                 throw new InvalidArgumentException("Query expression not found");
             }

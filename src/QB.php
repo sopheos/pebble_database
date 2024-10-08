@@ -457,7 +457,7 @@ class QB
      */
     public function whereAuto(string $colStr, $value): static
     {
-        $pattern = "/(and|or)?\s*([a-z0-9_]+)\s*(.*)/i";
+        $pattern = "/(and|or)?\s*([a-z0-9_()]+)\s*(.*)/i";
         $matches = [];
 
         if (preg_match($pattern, $colStr, $matches) !== 1) {
@@ -465,11 +465,15 @@ class QB
         }
 
         $prefix = mb_strtoupper($matches[1] ?: 'and');
-        $prefix = mb_strtoupper($matches[1] ?: 'and');
         $col = $matches[2];
         $operator = mb_strtoupper(($matches[3] ?? null) ?: '=');
         $operator = $operator === '!=' ? '<>' : $operator;
 
+        if ($col === '(') {
+            return $prefix === 'AND' ? $this->groupStart() : $this->orGroupStart();
+        } elseif ($col === ')') {
+            return $this->groupEnd();
+        }
 
         if (is_array($value)) {
             if (!$value) {

@@ -451,17 +451,17 @@ class QB
     /**
      * Auto where
      *
-     * @param string $colStr
+     * @param string $expr
      * @param mixed $value
      * @return static
      */
-    public function whereAuto(string $colStr, $value): static
+    public function whereAuto(string $expr, $value): static
     {
         $pattern = "/(and|or)?\s*([a-z0-9_()]+)\s*(.*)/i";
         $matches = [];
 
-        if (preg_match($pattern, $colStr, $matches) !== 1) {
-            throw new InvalidArgumentException("$colStr format");
+        if (preg_match($pattern, $expr, $matches) !== 1) {
+            throw new InvalidArgumentException("$expr format");
         }
 
         $prefix = mb_strtoupper($matches[1] ?: 'and');
@@ -503,15 +503,18 @@ class QB
 
     /**
      * Auto where list
-     *
-     * @param string $colStr
-     * @param mixed $value
+     * @param array $where
      * @return static
      */
     public function whereAutoList(array $where = []): static
     {
-        foreach ($where as $col => $value) {
-            $this->whereAuto($col, $value);
+        foreach ($where as $value) {
+            $expr = $value['expr'] ?? null;
+            $value = $value['value'] ?? null;
+            if ($expr === null) {
+                throw new InvalidArgumentException("Query expression not found");
+            }
+            $this->whereAuto($expr, $value);
         }
 
         return $this;

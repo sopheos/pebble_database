@@ -54,11 +54,6 @@ class Driver implements DriverInterface
         $this->setReconnectDelayMs();
     }
 
-    /**
-     * @param array $config
-     * @return PDO
-     * @throws Exception
-     */
     public static function create(string $dsn, $username = null, $password = null, array $options = []): static
     {
         return new static($dsn, $username, $password, $options);

@@ -64,13 +64,13 @@ class Driver implements DriverInterface
         return new static($dsn, $username, $password, $options);
     }
 
-    public function setMaxReconnectTries(int $maxReconnectTries = 100): static
+    public function setMaxReconnectTries(int $maxReconnectTries = 0): static
     {
         $this->maxReconnectTries = $maxReconnectTries;
         return $this;
     }
 
-    public function setReconnectDelayMs(int $reconnectDelayMs = 500): static
+    public function setReconnectDelayMs(int $reconnectDelayMs = 1000): static
     {
         $this->reconnectDelay = $reconnectDelayMs * 1000;
         return $this;
@@ -78,13 +78,15 @@ class Driver implements DriverInterface
 
     // -------------------------------------------------------------------------
 
-    private function getConnection(): PDO
+    public function getConnection(): PDO
     {
+        echo "retries:" . $this->reconnectTries . PHP_EOL;
+
         if (!$this->connection) {
             $this->connection = new PDO($this->dsn, $this->username, $this->password, $this->options);
+            $this->reconnectTries = 0;
         }
 
-        $this->reconnectTries = 0;
         return $this->connection;
     }
 
@@ -121,7 +123,7 @@ class Driver implements DriverInterface
         try {
             $this->getConnection()->exec("USE {$database}");
         } catch (PDOException $ex) {
-            return $this->retry($ex) ? $this->use($database) : (throw Exception::connect($ex));
+            return $this->retry($ex) ? $this->use($database) : (throw Exception::execute($ex));
         }
 
         return $this;

@@ -75,8 +75,6 @@ class Driver implements DriverInterface
 
     public function getConnection(): PDO
     {
-        echo "retries:" . $this->reconnectTries . PHP_EOL;
-
         if (!$this->connection) {
             $this->connection = new PDO($this->dsn, $this->username, $this->password, $this->options);
             $this->reconnectTries = 0;
@@ -85,7 +83,7 @@ class Driver implements DriverInterface
         return $this->connection;
     }
 
-    private function retry(PDOException $ex): bool
+    public function retry(PDOException $ex): bool
     {
         // not disconnected
         if (! in_array($ex->errorInfo[1] ?? null, self::$reconnectErrors)) {

@@ -16,25 +16,95 @@ use Pebble\Database\StatementInterface;
  */
 class Driver implements DriverInterface
 {
-    private PDO $pdo;
+    private string $dsn;
+    private ?string $username = null;
+    private ?string $password = null;
+    private array $options = [];
+
+    private int $maxReconnectTries;
+    private int $reconnectDelay; // in ms
+
+    private static $reconnectErrors = [
+        1317, // interrupted
+        2002, // refused
+        2006, // gone away
+    ];
+
+    private $reconnectTries = 0;
+
+    protected ?PDO $connection = null;
 
     // -------------------------------------------------------------------------
 
-    /**
-     * @param PDO $pdo
-     */
-    public function __construct(PDO $pdo)
+    public function __construct(string $dsn, $username = null, $password = null, array $options = [])
     {
-        $this->pdo = $pdo;
+        $default = [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_EMULATE_PREPARES => false,
+            PDO::ATTR_STRINGIFY_FETCHES => false,
+        ];
+
+        // Default options
+        $this->dsn = $dsn;
+        $this->username = $username;
+        $this->password = $password;
+        $this->options = $default + $options;
+
+        $this->setMaxReconnectTries();
+        $this->setReconnectDelayMs();
     }
 
     /**
-     * @param PDO $pdo
-     * @return static
+     * @param array $config
+     * @return PDO
+     * @throws Exception
      */
-    public static function create(PDO $pdo): static
+    public static function create(string $dsn, $username = null, $password = null, array $options = []): static
     {
-        return new static($pdo);
+        return new static($dsn, $username, $password, $options);
+    }
+
+    public function setMaxReconnectTries(int $maxReconnectTries = 100): static
+    {
+        $this->maxReconnectTries = $maxReconnectTries;
+        return $this;
+    }
+
+    public function setReconnectDelayMs(int $reconnectDelayMs = 500): static
+    {
+        $this->reconnectDelay = $reconnectDelayMs * 1000;
+        return $this;
+    }
+
+    // -------------------------------------------------------------------------
+
+    private function getConnection(): PDO
+    {
+        if (!$this->connection) {
+            $this->connection = new PDO($this->dsn, $this->username, $this->password, $this->options);
+        }
+
+        $this->reconnectTries = 0;
+        return $this->connection;
+    }
+
+    private function retry(PDOException $ex): bool
+    {
+        // not disconnected
+        if (! in_array($ex->errorInfo[1] ?? null, self::$reconnectErrors)) {
+            return false;
+        }
+
+        // cannot retry
+        if ($this->reconnectTries >= $this->maxReconnectTries) {
+            throw Exception::connect($ex);
+        }
+
+        $this->connection = null;
+        $this->reconnectTries++;
+        usleep($this->reconnectDelay);
+
+        return true;
     }
 
     // -------------------------------------------------------------------------
@@ -49,9 +119,9 @@ class Driver implements DriverInterface
     public function use(string $database): static
     {
         try {
-            $this->pdo->exec("USE {$database}");
+            $this->getConnection()->exec("USE {$database}");
         } catch (PDOException $ex) {
-            throw Exception::connect($ex);
+            return $this->retry($ex) ? $this->use($database) : (throw Exception::connect($ex));
         }
 
         return $this;
@@ -64,7 +134,11 @@ class Driver implements DriverInterface
      */
     public function getId(): int
     {
-        return $this->pdo->lastInsertId() ?: 0;
+        try {
+            return $this->getConnection()->lastInsertId() ?: 0;
+        } catch (PDOException $ex) {
+            return $this->retry($ex) ? $this->getId() : (throw Exception::execute($ex));
+        }
     }
 
     /**
@@ -75,7 +149,11 @@ class Driver implements DriverInterface
      */
     public function escape(string $str): string
     {
-        return $this->pdo->quote($str);
+        try {
+            return $this->getConnection()->quote($str);
+        } catch (PDOException $ex) {
+            return $this->retry($ex) ? $this->getId() : (throw Exception::execute($ex));
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -89,9 +167,9 @@ class Driver implements DriverInterface
     public function transaction(): static
     {
         try {
-            $this->pdo->beginTransaction();
+            return $this->getConnection()->beginTransaction();
         } catch (PDOException $ex) {
-            throw Exception::transaction($ex);
+            return $this->retry($ex) ? $this->transaction() : (throw Exception::transaction($ex));
         }
 
         return $this;
@@ -106,9 +184,9 @@ class Driver implements DriverInterface
     public function commit(): static
     {
         try {
-            $this->pdo->commit();
+            return $this->getConnection()->commit();
         } catch (PDOException $ex) {
-            throw Exception::transaction($ex);
+            return $this->retry($ex) ? $this->commit() : (throw Exception::transaction($ex));
         }
 
         return $this;
@@ -123,9 +201,9 @@ class Driver implements DriverInterface
     public function rollback(): static
     {
         try {
-            $this->pdo->rollBack();
+            return $this->getConnection()->rollback();
         } catch (PDOException $ex) {
-            throw Exception::transaction($ex);
+            return $this->retry($ex) ? $this->rollback() : (throw Exception::transaction($ex));
         }
 
         return $this;
@@ -165,10 +243,10 @@ class Driver implements DriverInterface
     public function query(string $sql): StatementInterface
     {
         try {
-            $stmt = $this->pdo->query($sql);
+            $stmt = $this->getConnection()->query($sql);
             return new Statement($stmt);
         } catch (PDOException $ex) {
-            throw Exception::execute($ex);
+            return $this->retry($ex) ? $this->query($sql) : (throw Exception::execute($ex));
         }
     }
 
@@ -182,10 +260,10 @@ class Driver implements DriverInterface
     public function prepare(string $statement): StatementInterface
     {
         try {
-            $stmt = $this->pdo->prepare($statement);
-            return new Statement($stmt);
+            $pdoStmt = $this->getConnection()->prepare($statement);
+            return Statement::create($pdoStmt);
         } catch (PDOException $ex) {
-            throw Exception::prepare($ex);
+            return $this->retry($ex) ? $this->prepare($statement) : (throw Exception::prepare($ex));
         }
     }
 
@@ -199,16 +277,29 @@ class Driver implements DriverInterface
     public function exec(QueryInterface $query): StatementInterface
     {
         try {
-            return $this
-                ->prepare($query->getStatement())
-                ->execute($query->getData());
+            $pdoStmt = $this->getConnection()->prepare($query->getStatement());
+            return Statement::create($pdoStmt)->execute($query->getData());
+        } catch (PDOException $ex) {
+            if ($this->retry($ex)) {
+                return $this->exec($query);
+            }
+            throw $this->queryException($query, Exception::prepare($ex));
         } catch (Exception $ex) {
-            throw new Exception(
-                $ex->getMessage() . "\n" . $query->__toString(),
-                $ex->getCode(),
-                $ex->getPrevious()
-            );
+            $prev = $ex->getPrevious();
+            if ($prev && ($prev instanceof PDOException) && $this->retry($prev)) {
+                return $this->exec($query);
+            }
+            throw $this->queryException($query, $ex);
         }
+    }
+
+    private function queryException(QueryInterface $query, Exception $ex): Exception
+    {
+        return new Exception(
+            $ex->getMessage() . "\n" . $query->__toString(),
+            $ex->getCode(),
+            $ex->getPrevious()
+        );
     }
 
     // -------------------------------------------------------------------------

@@ -111,15 +111,13 @@ class Driver implements DriverInterface
      * @return static
      * @throws Exception
      */
-    public function use(string $database): static
+    public function use(string $database): bool
     {
         try {
-            $this->getConnection()->exec("USE {$database}");
+            return $this->getConnection()->exec("USE {$database}") ? true : false;
         } catch (PDOException $ex) {
             return $this->retry($ex) ? $this->use($database) : (throw Exception::execute($ex));
         }
-
-        return $this;
     }
 
     /**
@@ -156,10 +154,10 @@ class Driver implements DriverInterface
     /**
      * Start a transaction
      *
-     * @return static
+     * @return boolean
      * @throws Exception
      */
-    public function transaction(): static
+    public function transaction(): bool
     {
         try {
             return $this->getConnection()->beginTransaction();
@@ -173,10 +171,10 @@ class Driver implements DriverInterface
     /**
      * Commit a transaction
      *
-     * @return static
+     * @return boolean
      * @throws Exception
      */
-    public function commit(): static
+    public function commit(): bool
     {
         try {
             return $this->getConnection()->commit();
@@ -190,10 +188,10 @@ class Driver implements DriverInterface
     /**
      * Rollback a transaction
      *
-     * @return static
+     * @return boolean
      * @throws Exception
      */
-    public function rollback(): static
+    public function rollback(): bool
     {
         try {
             return $this->getConnection()->rollback();

@@ -12,10 +12,10 @@ interface DriverInterface
      * Changes the current database
      *
      * @param string $database
-     * @return static
+     * @return boolean
      * @throws Exception
      */
-    public function use(string $database): static;
+    public function use(string $database): bool;
 
     /**
      * Returns the last inserted id
@@ -37,26 +37,26 @@ interface DriverInterface
     /**
      * Start a transaction
      *
-     * @return static
+     * @return boolean
      * @throws Exception
      */
-    public function transaction(): static;
+    public function transaction(): bool;
 
     /**
      * Commit a transaction
      *
-     * @return static
+     * @return boolean
      * @throws Exception
      */
-    public function commit(): static;
+    public function commit(): bool;
 
     /**
      * Rollback a transaction
      *
-     * @return static
+     * @return boolean
      * @throws Exception
      */
-    public function rollback(): static;
+    public function rollback(): bool;
 
     // -------------------------------------------------------------------------
 

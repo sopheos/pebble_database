@@ -48,6 +48,54 @@ class QB
         return new static($table);
     }
 
+    public function import(array $data = []): static
+    {
+        $this->data_keys       = $data['data_keys'] ?? [];
+        $this->data_values     = $data['data_values'] ?? [];
+        $this->data_raw_keys   = $data['data_raw_keys'] ?? [];
+        $this->data_raw_values = $data['data_raw_values'] ?? [];
+        $this->from_stmt       = $data['from_stmt'] ?? "";
+        $this->group_stmt      = $data['group_stmt'] ?? "";
+        $this->group_count     = $data['group_count'] ?? 0;
+        $this->group_level     = $data['group_level'] ?? 0;
+        $this->having_data     = $data['having_data'] ?? [];
+        $this->having_stmt     = $data['having_stmt'] ?? "";
+        $this->is_distinct     = $data['is_distinct'] ?? false;
+        $this->join_stmt       = $data['join_stmt'] ?? "";
+        $this->limit_nb        = $data['limit_nb'] ?? 0;
+        $this->offset_nb       = $data['offset_nb'] ?? 0;
+        $this->order_by        = $data['order_by'] ?? "";
+        $this->select_stmt     = $data['select_stmt'] ?? "";
+        $this->where_data      = $data['where_data'] ?? [];
+        $this->where_stmt      = $data['where_stmt'] ?? "";
+
+        return $this;
+    }
+
+    public function export(): array
+    {
+        return [
+            'data_keys'       => $this->data_keys,
+            'data_values'     => $this->data_values,
+            'data_raw_keys'   => $this->data_raw_keys,
+            'data_raw_values' => $this->data_raw_values,
+            'from_stmt'       => $this->from_stmt,
+            'group_stmt'      => $this->group_stmt,
+            'group_count'     => $this->group_count,
+            'group_level'     => $this->group_level,
+            'having_data'     => $this->having_data,
+            'having_stmt'     => $this->having_stmt,
+            'is_distinct'     => $this->is_distinct,
+            'join_stmt'       => $this->join_stmt,
+            'limit_nb'        => $this->limit_nb,
+            'offset_nb'       => $this->offset_nb,
+            'order_by'        => $this->order_by,
+            'select_stmt'     => $this->select_stmt,
+            'where_data'      => $this->where_data,
+            'where_stmt'      => $this->where_stmt,
+        ];
+    }
+
     // -------------------------------------------------------------------------
     // Select
     // -------------------------------------------------------------------------
@@ -632,7 +680,7 @@ class QB
         }
         // Subquery
         elseif ($values instanceof Query) {
-            $stmt = mb_substr($values->getStatement(), 0, -1);
+            $stmt = $values->trimStatement();
             $data = $values->getData();
         }
 
@@ -971,7 +1019,7 @@ class QB
      */
     public function insert(bool $ignore = false): Query
     {
-        $str = $this->_buildInsert(false, $ignore);
+        $str = $this->_buildInsert($ignore ? 'INSERT IGNORE' : 'INSERT');
         $data = $this->data_values;
 
         return new Query($str, $data);
@@ -984,7 +1032,7 @@ class QB
      */
     public function replace(): Query
     {
-        $str = $this->_buildInsert(true);
+        $str = $this->_buildInsert('REPLACE');
         $data = $this->data_values;
 
         return new Query($str, $data);
@@ -1156,7 +1204,7 @@ class QB
         return "";
     }
 
-    private function _buildInsert(bool $replace = false, bool $ignore = false): string
+    private function _buildInsert(string $mode): string
     {
         $keys = "";
         $values = "";
@@ -1177,10 +1225,7 @@ class QB
             $values .= join($sep, $this->data_raw_values);
         }
 
-        $ignore = $ignore && !$replace ? " IGNORE" : "";
-
-        return ($replace ? "REPLACE" : "INSERT" . $ignore)
-            . " INTO\n\t" . $this->from_stmt
+        return $mode . " INTO\n\t" . $this->from_stmt
             . "(\n\t\t" . $keys . "\n\t)\n"
             . "VALUES \t(" . $values . "\n\t)";
     }
@@ -1219,6 +1264,6 @@ class QB
             $select = $from[count($from) - 1];
         }
 
-        return "DELETE " . $select . " FROM\n\t" . $this->from_stmt;
+        return "DELETE " . $select . "\nFROM " . $this->from_stmt;
     }
 }

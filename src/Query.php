@@ -42,12 +42,31 @@ class Query implements QueryInterface
         return $this;
     }
 
+    public function union(Query $query, bool $all = false): static
+    {
+        $this->setStatement(
+            $this->trimStatement()
+                . ($all ? "\nUNION ALL\n" : "\nUNION\n")
+                . $query->trimStatement()
+                . ';'
+        );
+
+        $this->setData(array_merge($this->getData(), $query->getData()));
+
+        return $this;
+    }
+
     /**
      * @return string
      */
     public function getStatement(): string
     {
         return $this->statement;
+    }
+
+    public function trimStatement(): string
+    {
+        return mb_substr($this->statement, 0, -1);
     }
 
     /**
@@ -62,8 +81,8 @@ class Query implements QueryInterface
     {
         $query = $this->statement;
 
-        foreach ($this->data as $k => $v) {
-            $replace = is_string($v) ? "'" . self::mysql_escape_mimic($v) . "'" : $v;
+        foreach ($this->data as $v) {
+            $replace = self::wrapText(self::escape($v));
             $pos = strpos($query, '?');
             if ($pos !== false) {
                 $query = substr_replace($query, $replace ?? '', $pos, 1);
@@ -73,19 +92,33 @@ class Query implements QueryInterface
         return $query;
     }
 
-    /**
-     * @param string $inp
-     */
-    public static function mysql_escape_mimic($inp)
+    public static function wrapText(mixed $value): mixed
     {
-        if (is_array($inp)) {
-            return array_map([static::class, 'escape'], $inp);
+        if (is_array($value)) {
+            return array_map([static::class, 'wrapText'], $value);
         }
 
-        if (!empty($inp) && is_string($inp)) {
-            return str_replace(array('\\', "\0", "\n", "\r", "'", '"', "\x1a"), array('\\\\', '\\0', '\\n', '\\r', "\\'", '\\"', '\\Z'), $inp);
+        if (is_string($value)) {
+            return "'{$value}'";
         }
 
-        return $inp;
+        return $value;
+    }
+
+    public static function escape(mixed $value): mixed
+    {
+        if (! $value) {
+            return $value;
+        }
+
+        if (is_array($value)) {
+            return array_map([static::class, 'escape'], $value);
+        }
+
+        if (is_string($value)) {
+            return str_replace(array('\\', "\0", "\n", "\r", "'", '"', "\x1a"), array('\\\\', '\\0', '\\n', '\\r', "\\'", '\\"', '\\Z'), $value);
+        }
+
+        return $value;
     }
 }

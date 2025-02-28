@@ -11,24 +11,25 @@ use InvalidArgumentException;
  */
 class QB
 {
-    private array $data_keys = [];
-    private array $data_values = [];
-    private array $data_raw_keys = [];
+    private array $data_keys       = [];
+    private array $data_values     = [];
+    private array $data_raw_keys   = [];
     private array $data_raw_values = [];
-    private string $from_stmt = "";
-    private string $group_stmt = "";
-    private int $group_count = 0;
-    private int $group_level = 0;
-    private array $having_data = [];
-    private string $having_stmt = "";
-    private bool $is_distinct = false;
-    private string $join_stmt = "";
-    private int $limit_nb = 0;
-    private int $offset_nb = 0;
-    private string $order_by = "";
-    private string $select_stmt = "";
-    private array $where_data = [];
-    private string $where_stmt = "";
+    private string $from_stmt      = "";
+    private string $group_stmt     = "";
+    private int $group_count       = 0;
+    private int $group_level       = 0;
+    private array $having_data     = [];
+    private string $having_stmt    = "";
+    private bool $is_distinct      = false;
+    private string $join_stmt      = "";
+    private array $join_data       = [];
+    private int $limit_nb          = 0;
+    private int $offset_nb         = 0;
+    private string $order_by       = "";
+    private string $select_stmt    = "";
+    private array $where_data      = [];
+    private string $where_stmt     = "";
 
     // -------------------------------------------------------------------------
     // Construct
@@ -62,6 +63,7 @@ class QB
         $this->having_stmt     = $data['having_stmt'] ?? "";
         $this->is_distinct     = $data['is_distinct'] ?? false;
         $this->join_stmt       = $data['join_stmt'] ?? "";
+        $this->join_data       = $data['join_data'] ?? [];
         $this->limit_nb        = $data['limit_nb'] ?? 0;
         $this->offset_nb       = $data['offset_nb'] ?? 0;
         $this->order_by        = $data['order_by'] ?? "";
@@ -87,6 +89,7 @@ class QB
             'having_stmt'     => $this->having_stmt,
             'is_distinct'     => $this->is_distinct,
             'join_stmt'       => $this->join_stmt,
+            'join_data'       => $this->join_data,
             'limit_nb'        => $this->limit_nb,
             'offset_nb'       => $this->offset_nb,
             'order_by'        => $this->order_by,
@@ -137,11 +140,12 @@ class QB
      *
      * @param string $table
      * @param string $cond
+     * @param [mixed] ...$values
      * @return static
      */
-    public function join(string $table, string $cond): static
+    public function join(string $table, string $cond, ...$values): static
     {
-        return $this->_join($table, $cond);
+        return $this->_join($table, $cond, "", $values);
     }
 
     /**
@@ -149,11 +153,12 @@ class QB
      *
      * @param string $table
      * @param string $cond
+     * @param [mixed] ...$values
      * @return static
      */
-    public function left(string $table, string $cond): static
+    public function left(string $table, string $cond, ...$values): static
     {
-        return $this->_join($table, $cond, "LEFT");
+        return $this->_join($table, $cond, "LEFT", $values);
     }
 
     /**
@@ -161,11 +166,12 @@ class QB
      *
      * @param string $table
      * @param string $cond
+     * @param [mixed] ...$values
      * @return static
      */
-    public function right(string $table, string $cond): static
+    public function right(string $table, string $cond, ...$values): static
     {
-        return $this->_join($table, $cond, "RIGHT");
+        return $this->_join($table, $cond, "RIGHT", $values);
     }
 
     /**
@@ -174,9 +180,12 @@ class QB
      * @param string $type
      * @return static
      */
-    private function _join(string $table, string $cond, $type = ""): static
+    private function _join(string $table, string $cond, string $type = "", array $values = []): static
     {
         $this->join_stmt .= "\n" . trim($type . " JOIN " . $table . " ON " . $cond);
+        foreach ($values as $value) {
+            $this->join_data[] = $value;
+        }
         return $this;
     }
 
@@ -188,7 +197,7 @@ class QB
      * Where
      *
      * @param string $statement
-     * @param  mixed $values
+     * @param [mixed] ...$values
      * @return static
      */
     public function where(string $statement, ...$values): static
@@ -284,7 +293,7 @@ class QB
      * Or Where
      *
      * @param string $statement
-     * @param  mixed $values
+     * @param [mixed] ...$values
      * @return static
      */
     public function orWhere(string $statement, ...$values): static
@@ -752,7 +761,7 @@ class QB
      * Having
      *
      * @param string $statement
-     * @param mixed $values
+     * @param [mixed] ...$values
      * @return static
      */
     public function having(string $statement, ...$values): static
@@ -764,7 +773,7 @@ class QB
      * Or Having
      *
      * @param string $statement
-     * @param mixed $values
+     * @param [mixed] ...$values
      * @return static
      */
     public function orHaving(string $statement, ...$values): static
@@ -981,7 +990,11 @@ class QB
             . $this->_buildOrderBy()
             . $this->_buildLimit();
 
-        $data = array_merge($this->where_data, $this->having_data);
+        $data = array_merge(
+            $this->join_data,
+            $this->where_data,
+            $this->having_data
+        );
 
         return new Query($str, $data);
     }
@@ -1006,7 +1019,11 @@ class QB
             $str = "SELECT COUNT(*) as sum FROM (\n" . $str . "\n) as QBCOUNT";
         }
 
-        $data = array_merge($this->where_data, $this->having_data);
+        $data = array_merge(
+            $this->join_data,
+            $this->where_data,
+            $this->having_data
+        );
 
         return new Query($str, $data);
     }
@@ -1047,7 +1064,11 @@ class QB
     public function update(bool $ignore = false): Query
     {
         $str = $this->_buildUpdate($ignore);
-        $data = array_merge($this->data_values, $this->where_data);
+        $data = array_merge(
+            $this->join_data,
+            $this->data_values,
+            $this->where_data
+        );
 
         return new Query($str, $data);
     }
@@ -1065,7 +1086,10 @@ class QB
             . $this->_buildOrderBy()
             . $this->_buildLimit();
 
-        $data = $this->where_data;
+        $data = array_merge(
+            $this->join_data,
+            $this->where_data
+        );
 
         return new Query($str, $data);
     }

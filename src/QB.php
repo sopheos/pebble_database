@@ -454,7 +454,7 @@ class QB
      */
     public function orWhereInMultiple(array $fields, array $rows): static
     {
-        return $this->_multiple('AND', $fields, $rows);
+        return $this->_multiple('OR', $fields, $rows);
     }
 
     /**

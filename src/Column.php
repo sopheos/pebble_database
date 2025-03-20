@@ -279,7 +279,7 @@ class Column
      * @param string $collation
      * @return \static
      */
-    public function charset(string $charset, string $collation = null)
+    public function charset(string $charset, ?string $collation = null)
     {
         $this->charset = $charset;
         $this->collation = $collation;

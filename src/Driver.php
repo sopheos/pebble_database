@@ -36,7 +36,7 @@ class Driver implements DriverInterface
 
     // -------------------------------------------------------------------------
 
-    public function __construct(string $dsn, $username = null, $password = null, array $options = [])
+    public function __construct(string $dsn, ?string $username = null, ?string $password = null, array $options = [])
     {
         $default = [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
@@ -54,7 +54,7 @@ class Driver implements DriverInterface
         $this->setReconnectDelayMs();
     }
 
-    public static function create(string $dsn, $username = null, $password = null, array $options = []): static
+    public static function create(string $dsn, ?string $username = null, ?string $password = null, array $options = []): static
     {
         return new static($dsn, $username, $password, $options);
     }

@@ -116,7 +116,11 @@ class Driver implements DriverInterface
         try {
             return $this->getConnection()->exec("USE {$database}") ? true : false;
         } catch (PDOException $ex) {
-            return $this->retry($ex) ? $this->use($database) : (throw Exception::execute($ex));
+            if ($this->retry($ex)) {
+                $this->use($database);
+            }
+
+            throw Exception::execute($ex);
         }
     }
 
@@ -130,7 +134,11 @@ class Driver implements DriverInterface
         try {
             return $this->getConnection()->lastInsertId() ?: 0;
         } catch (PDOException $ex) {
-            return $this->retry($ex) ? $this->getId() : (throw Exception::execute($ex));
+            if ($this->retry($ex)) {
+                return $this->getId();
+            }
+
+            throw Exception::execute($ex);
         }
     }
 
@@ -145,7 +153,11 @@ class Driver implements DriverInterface
         try {
             return $this->getConnection()->quote($str);
         } catch (PDOException $ex) {
-            return $this->retry($ex) ? $this->getId() : (throw Exception::execute($ex));
+            if ($this->retry($ex)) {
+                return $this->escape($str);
+            }
+
+            throw Exception::execute($ex);
         }
     }
 
@@ -162,10 +174,12 @@ class Driver implements DriverInterface
         try {
             return $this->getConnection()->beginTransaction();
         } catch (PDOException $ex) {
-            return $this->retry($ex) ? $this->transaction() : (throw Exception::transaction($ex));
-        }
+            if ($this->retry($ex)) {
+                return $this->transaction();
+            }
 
-        return $this;
+            throw Exception::transaction($ex);
+        }
     }
 
     /**
@@ -179,10 +193,12 @@ class Driver implements DriverInterface
         try {
             return $this->getConnection()->commit();
         } catch (PDOException $ex) {
-            return $this->retry($ex) ? $this->commit() : (throw Exception::transaction($ex));
-        }
+            if ($this->retry($ex)) {
+                return $this->commit();
+            }
 
-        return $this;
+            throw Exception::transaction($ex);
+        }
     }
 
     /**
@@ -196,10 +212,12 @@ class Driver implements DriverInterface
         try {
             return $this->getConnection()->rollback();
         } catch (PDOException $ex) {
-            return $this->retry($ex) ? $this->rollback() : (throw Exception::transaction($ex));
-        }
+            if ($this->retry($ex)) {
+                return $this->rollback();
+            }
 
-        return $this;
+            throw Exception::transaction($ex);
+        }
     }
 
     // -------------------------------------------------------------------------

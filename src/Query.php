@@ -92,6 +92,14 @@ class Query implements QueryInterface
         return $query;
     }
 
+    public static function insertSelect(Query $insert, Query $select): static
+    {
+        return new static(
+            rtrim($insert->getStatement(), ';') . "\n" . $select->getStatement(),
+            [...$insert->getData(), ...$select->getData()]
+        );
+    }
+
     public static function wrapText(mixed $value): mixed
     {
         if (is_array($value)) {

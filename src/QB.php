@@ -28,8 +28,9 @@ class QB
     private int $offset_nb         = 0;
     private string $order_by       = "";
     private string $select_stmt    = "";
-    private array $where_data      = [];
+    private array $select_data    = [];
     private string $where_stmt     = "";
+    private array $where_data      = [];
 
     // -------------------------------------------------------------------------
     // Construct
@@ -68,8 +69,9 @@ class QB
         $this->offset_nb       = $data['offset_nb'] ?? 0;
         $this->order_by        = $data['order_by'] ?? "";
         $this->select_stmt     = $data['select_stmt'] ?? "";
-        $this->where_data      = $data['where_data'] ?? [];
+        $this->select_data     = $data['select_data'] ?? [];
         $this->where_stmt      = $data['where_stmt'] ?? "";
+        $this->where_data      = $data['where_data'] ?? [];
 
         return $this;
     }
@@ -94,8 +96,9 @@ class QB
             'offset_nb'       => $this->offset_nb,
             'order_by'        => $this->order_by,
             'select_stmt'     => $this->select_stmt,
-            'where_data'      => $this->where_data,
+            'select_data'     => $this->select_data,
             'where_stmt'      => $this->where_stmt,
+            'where_data'      => $this->where_data,
         ];
     }
 
@@ -120,6 +123,15 @@ class QB
         return $this;
     }
 
+    public function selectData(mixed ...$values): static
+    {
+        foreach ($values as $v) {
+            $this->select_data[] = $v;
+        }
+
+        return $this;
+    }
+
     /**
      * Select distinct
      *
@@ -140,10 +152,10 @@ class QB
      *
      * @param string $table
      * @param string $cond
-     * @param [mixed] ...$values
+     * @param mixed ...$values
      * @return static
      */
-    public function join(string $table, string $cond, ...$values): static
+    public function join(string $table, string $cond, mixed ...$values): static
     {
         return $this->_join($table, $cond, "", $values);
     }
@@ -153,10 +165,11 @@ class QB
      *
      * @param string $table
      * @param string $cond
-     * @param [mixed] ...$values
+     * @param mixed ...$values
      * @return static
      */
-    public function left(string $table, string $cond, ...$values): static
+
+    public function left(string $table, string $cond, mixed ...$values): static
     {
         return $this->_join($table, $cond, "LEFT", $values);
     }
@@ -166,10 +179,10 @@ class QB
      *
      * @param string $table
      * @param string $cond
-     * @param [mixed] ...$values
+     * @param mixed ...$values
      * @return static
      */
-    public function right(string $table, string $cond, ...$values): static
+    public function right(string $table, string $cond, mixed ...$values): static
     {
         return $this->_join($table, $cond, "RIGHT", $values);
     }
@@ -197,10 +210,10 @@ class QB
      * Where
      *
      * @param string $statement
-     * @param [mixed] ...$values
+     * @param mixed ...$values
      * @return static
      */
-    public function where(string $statement, ...$values): static
+    public function where(string $statement, mixed ...$values): static
     {
         return $this->_where("AND", $statement, $values);
     }
@@ -293,10 +306,10 @@ class QB
      * Or Where
      *
      * @param string $statement
-     * @param [mixed] ...$values
+     * @param mixed ...$values
      * @return static
      */
-    public function orWhere(string $statement, ...$values): static
+    public function orWhere(string $statement, mixed ...$values): static
     {
         return $this->_where("OR", $statement, $values);
     }
@@ -761,10 +774,10 @@ class QB
      * Having
      *
      * @param string $statement
-     * @param [mixed] ...$values
+     * @param mixed ...$values
      * @return static
      */
-    public function having(string $statement, ...$values): static
+    public function having(string $statement, mixed ...$values): static
     {
         return $this->_having("AND", $statement, $values);
     }
@@ -773,10 +786,10 @@ class QB
      * Or Having
      *
      * @param string $statement
-     * @param [mixed] ...$values
+     * @param mixed ...$values
      * @return static
      */
-    public function orHaving(string $statement, ...$values): static
+    public function orHaving(string $statement, mixed ...$values): static
     {
         return $this->_having("OR", $statement, $values);
     }
@@ -991,6 +1004,7 @@ class QB
             . $this->_buildLimit();
 
         $data = array_merge(
+            $this->select_data,
             $this->join_data,
             $this->where_data,
             $this->having_data
